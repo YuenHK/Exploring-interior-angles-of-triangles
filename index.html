@@ -427,6 +427,13 @@
         updateTrianglePath();
         updateAngleRecords();
         redrawAllActiveArcs();
+
+// ★★★ 新增這段：如果拖曳的是 A，讓 walker 跟著動 ★★★
+    if (draggedVertex === 'A') {
+      // 暫時移除動畫過渡效果，讓跟隨更即時（避免延遲感）
+      walker.style.transition = 'none'; 
+      walker.setAttribute('transform', `translate(${x}, ${y})`);
+    }
       }
     });
 
