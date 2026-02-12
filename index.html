@@ -1,547 +1,571 @@
 <!doctype html>
 <html lang="zh-TW" class="h-full">
- <head>
+<head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>三角形內角探索</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <script src="/_sdk/element_sdk.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  
   <style>
-    body {
-      box-sizing: border-box;
+    body { 
+        box-sizing: border-box; 
+        font-family: 'Noto Sans TC', sans-serif; 
+        touch-action: none; 
+        -webkit-user-select: none;
+        user-select: none;
     }
-    * {
-      font-family: 'Noto Sans TC', sans-serif;
+    
+    /* 數學變數 x 的樣式 */
+    .math-x {
+        font-family: 'Times New Roman', serif;
+        font-style: italic;
     }
+
     @keyframes pulse-glow {
-      0%, 100% { filter: drop-shadow(0 0 8px rgba(255, 107, 107, 0.6)); }
-      50% { filter: drop-shadow(0 0 16px rgba(255, 107, 107, 0.9)); }
+      0%, 100% { filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5)); }
+      50% { filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.8)); }
     }
-    .walker-glow {
-      animation: pulse-glow 1.5s ease-in-out infinite;
-    }
+    .walker-glow { animation: pulse-glow 2s ease-in-out infinite; }
+    
     .draggable-vertex {
-      transition: r 0.2s;
+      transition: r 0.2s, filter 0.2s;
       cursor: grab;
+      vector-effect: non-scaling-stroke; 
     }
-    .draggable-vertex:hover {
-      r: 14;
-      filter: drop-shadow(0 0 8px rgba(255, 107, 107, 0.8));
+    .draggable-vertex:active {
+      cursor: grabbing;
+      r: 18; 
+    }
+    .hidden { display: none !important; }
+    
+    /* 數值出現時的淡入效果 */
+    .fade-in-text { animation: fadeIn 0.5s ease-in; }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .angle-row {
+        padding: 0.75rem 1rem;
     }
   </style>
-  <style>@view-transition { navigation: auto; }</style>
-  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
- </head>
- <body class="h-full m-0 p-0 overflow-auto">
-  <div id="app-wrapper" class="w-full h-full min-h-full bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
-   <div class="w-full max-w-6xl mx-auto p-6"><!-- Header -->
-    <div class="text-center mb-6">
-     <h1 id="main-title" class="text-3xl font-bold text-white mb-2">📐 三角形內角探索</h1>
-     <p id="instruction-text" class="text-slate-300">拖拽紅色圓點改變三角形形狀，或點擊「下一步」觀察內角大小！</p>
-    </div><!-- Main Layout: Side Panels with Canvas -->
-    <div class="flex gap-4 mb-6"><!-- Left Panel: Current Status -->
-     <div class="w-56 bg-slate-800/50 rounded-2xl p-4 backdrop-blur-sm border border-slate-700/50 h-fit">
-      <h3 class="text-amber-400 font-bold mb-3 flex items-center gap-2"><span>📍</span> 目前狀態</h3>
-      <p id="status-text" class="text-slate-200 text-sm leading-relaxed">觀察頂點 A 的內角！</p>
-     </div><!-- Main Canvas Area -->
-     <div class="flex-1 bg-slate-800/50 rounded-2xl p-6 backdrop-blur-sm border border-slate-700/50">
-      <svg id="triangle-svg" viewbox="0 0 500 400" class="w-full h-auto" style="touch-action: none;"><!-- Floor pattern --> <defs>
-        <pattern id="grid" width="20" height="20" patternunits="userSpaceOnUse">
-         <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(148, 163, 184, 0.1)" stroke-width="1" />
-        </pattern>
-       </defs> <!-- Grid background --> <rect width="500" height="400" fill="url(#grid)" /> <!-- Triangle edges --> <polygon id="triangle-path" points="250,76 410,310 90,310" fill="none" stroke="#fbbf24" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.8" pointer-events="none" /> <!-- Interior angle arcs and labels --> <g id="angle-arcs" pointer-events="none"></g> <!-- Draggable vertices --> <circle id="vertex-a" cx="250" cy="76" r="10" fill="#ff6b6b" stroke="#fff" stroke-width="2" class="draggable-vertex" /> <circle id="vertex-b" cx="410" cy="310" r="10" fill="#ff6b6b" stroke="#fff" stroke-width="2" class="draggable-vertex" /> <circle id="vertex-c" cx="90" cy="310" r="10" fill="#ff6b6b" stroke="#fff" stroke-width="2" class="draggable-vertex" /> <!-- Vertex labels --> <text id="label-a" x="250" y="56" text-anchor="middle" fill="#f8fafc" font-size="16" font-weight="bold" pointer-events="none">
-        A
-       </text> <text id="label-b" x="430" y="320" text-anchor="start" fill="#f8fafc" font-size="16" font-weight="bold" pointer-events="none">
-        B
-       </text> <text id="label-c" x="70" y="320" text-anchor="end" fill="#f8fafc" font-size="16" font-weight="bold" pointer-events="none">
-        C
-       </text> <!-- Walker - Cute Cartoon Character -->
-<g id="walker" transform="translate(250, 76)" pointer-events="none" class="walker-glow">
-  <image 
-    href="https://i.imgur.com/xR6lY2Y.png" 
-    x="-20" 
-    y="-20" 
-    width="40" 
-    height="40" 
-  />
-</g>
-           <!-- Angle display --> <g id="angle-display" style="display: none;" pointer-events="none">
-        <rect x="180" y="160" width="140" height="60" rx="10" fill="rgba(255, 107, 107, 0.9)" />
-        <text id="angle-text" x="250" y="198" text-anchor="middle" fill="white" font-size="24" font-weight="bold">
-         內角 60°
-        </text>
-       </g>
-      </svg>
-     </div><!-- Right Panel: Angle Records -->
-     <div class="w-56 bg-slate-800/50 rounded-2xl p-4 backdrop-blur-sm border border-slate-700/50 h-fit">
-      <h3 class="text-amber-400 font-bold mb-3 flex items-center gap-2"><span>📐</span> 內角記錄</h3>
-      <div id="angle-records" class="space-y-2 text-sm">
-       <div class="flex justify-between text-slate-400"><span>頂點 A：</span> <span id="angle-a" class="text-amber-400 font-semibold">—</span>
-       </div>
-       <div class="flex justify-between text-slate-400"><span>頂點 B：</span> <span id="angle-b" class="text-amber-400 font-semibold">—</span>
-       </div>
-       <div class="flex justify-between text-slate-400"><span>頂點 C：</span> <span id="angle-c" class="text-amber-400 font-semibold">—</span>
-       </div>
-       <div class="border-t border-slate-600 pt-2 mt-2 flex justify-between font-bold"><span class="text-amber-400">內角和：</span> <span id="total-angle" class="text-amber-400">—</span>
-       </div>
-      </div>
-     </div>
-    </div><!-- Controls -->
-    <div class="flex justify-center gap-4 mb-6"><button id="prev-btn" class="px-6 py-3 bg-slate-600 hover:bg-slate-500 text-white rounded-xl font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"> <span>◀</span> 上一步 </button> <button id="next-btn" class="px-8 py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-xl font-bold transition-all shadow-lg hover:shadow-amber-500/30 flex items-center gap-2"> 下一步 <span>▶</span> </button> <button id="reset-btn" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium transition-all flex items-center gap-2"> <span>↺</span> 重置 </button>
-    </div><!-- Discovery Box -->
-    <div id="discovery-box" class="max-w-2xl mx-auto bg-gradient-to-r from-emerald-600/20 to-teal-600/20 rounded-xl p-4 border border-emerald-500/30" style="display: none;">
-     <h3 class="text-emerald-400 font-bold mb-2 flex items-center gap-2"><span>💡</span> 發現！</h3>
-     <p class="text-slate-200">三角形三個內角的總和是 <strong class="text-amber-400">180°</strong>！</p>
-     <p class="text-slate-300 text-sm mt-2">這是<strong class="text-emerald-400">三角形內角和定理</strong>：任何三角形的內角和永遠等於 180°！</p>
-    </div><!-- Educational Note -->
-    <div class="mt-6 text-center text-slate-400 text-sm">
-     <p>💡 提示：拖拽紅色圓點改變三角形，內角數值會即時更新。三角形的內角和永遠是 180°！</p>
+</head>
+<body class="h-full m-0 p-0 bg-slate-900 text-slate-100 overflow-hidden">
+
+  <div class="w-full max-w-7xl mx-auto p-4 md:p-6 h-full flex flex-col justify-center">
+    
+    <div class="text-center mb-2 flex-none">
+      <h1 class="text-2xl md:text-4xl font-bold mb-1 text-amber-400">📐 三角形內角大發現</h1>
     </div>
-   </div>
+
+    <div class="flex flex-col lg:flex-row gap-4 lg:gap-8 flex-1 min-h-0">
+      
+      <div class="w-full lg:w-80 flex flex-col gap-4 order-2 lg:order-1 flex-none">
+        
+        <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-lg">
+          <h3 class="text-amber-400 font-bold mb-2">📍 觀察員 MISS WONG 狀態<img src='https://i.imgur.com/xR6lY2Y.png' width='50' height='50' alt="Centered image"></h3>
+          <p id="status-text" class="text-slate-300 text-sm">請拖曳紅點 A 帶我移動。</p>
+        </div>
+
+        <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-lg flex-1 flex flex-col justify-center">
+          <h3 class="text-blue-400 font-bold mb-4 text-xl">📐 角度記錄</h3>
+          
+          <div class="space-y-4 text-sm flex-1">
+            <div class="angle-row flex justify-between items-center rounded bg-slate-700/50 border-l-4 border-red-500">
+              <span class="text-red-400 font-bold text-xl">∠A</span>
+              <span id="record-a" class="font-mono text-3xl transition-all duration-300">--</span>
+            </div>
+
+            <div class="angle-row flex justify-between items-center rounded bg-slate-700/50 border-l-4 border-blue-500">
+              <span class="text-blue-400 font-bold text-xl">∠B</span>
+              <span id="record-b" class="font-mono text-3xl transition-all duration-300">--</span>
+            </div>
+
+            <div class="angle-row flex justify-between items-center rounded bg-slate-700/50 border-l-4 border-green-500 relative">
+              <span class="text-green-400 font-bold text-xl">∠C</span>
+              <span id="record-c" class="font-mono text-3xl transition-all duration-300">--</span>
+            </div>
+
+            <div class="border-t border-slate-600 pt-3 mt-2 px-1">
+              <div class="flex justify-between items-end mb-1">
+                <span class="text-amber-400 font-bold text-lg">內角和</span>
+                <span id="total-formula" class="text-slate-400 text-xs font-mono text-right"></span>
+              </div>
+              <div class="text-right">
+                <span id="record-total" class="font-mono text-3xl text-amber-400 font-bold">0°</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="quiz-hint" class="hidden mt-4 text-sm text-center text-slate-400 bg-slate-900/50 p-3 rounded">
+            提示：180 - A - B = <span class="math-x text-lg">x</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-1 order-1 lg:order-2 bg-slate-800 rounded-3xl border border-slate-700 shadow-2xl relative overflow-hidden" style="touch-action: none;">
+        <svg id="triangle-svg" viewBox="0 0 500 450" class="w-full h-full select-none" style="touch-action: none;">
+          <defs>
+            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+            </pattern>
+            <clipPath id="circle-clip">
+              <circle cx="0" cy="0" r="20" />
+            </clipPath>
+          </defs>
+
+          <rect width="500" height="450" fill="url(#grid)" />
+
+          <g id="proof-area" transform="translate(250, 450)" opacity="0">
+             <line x1="-100" y1="0" x2="100" y2="0" stroke="#64748b" stroke-width="2" stroke-dasharray="5,5" />
+             <text x="0" y="25" text-anchor="middle" fill="#94a3b8" font-size="14">平角 (180°)</text>
+          </g>
+
+          <polygon id="triangle-path" points="0,0 0,0 0,0" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="4" stroke-linejoin="round" />
+          <g id="angle-arcs"></g>
+
+          <circle id="vertex-a" r="14" fill="#ef4444" stroke="white" stroke-width="2" class="draggable-vertex" />
+          <circle id="vertex-b" r="14" fill="#3b82f6" stroke="white" stroke-width="2" class="draggable-vertex" />
+          <circle id="vertex-c" r="14" fill="#22c55e" stroke="white" stroke-width="2" class="draggable-vertex" />
+
+          <text id="label-a" fill="#ef4444" font-weight="bold" font-size="18" text-anchor="middle" pointer-events="none">A</text>
+          <text id="label-b" fill="#3b82f6" font-weight="bold" font-size="18" text-anchor="start" pointer-events="none">B</text>
+          <text id="label-c" fill="#22c55e" font-weight="bold" font-size="18" text-anchor="end" pointer-events="none">C</text>
+
+          <g id="walker" transform="translate(0,0)" class="walker-glow" pointer-events="none" style="transition: transform 1.0s linear;">
+            <circle cx="0" cy="0" r="23" fill="white" />
+            <image 
+              href="https://i.imgur.com/xR6lY2Y.png" 
+              x="-20" y="-20" width="40" height="40" 
+              clip-path="url(#circle-clip)"
+              preserveAspectRatio="xMidYMid slice"
+            />
+          </g>
+        </svg>
+
+        <div id="discovery-msg" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-900/95 backdrop-blur border-2 border-amber-400 p-6 rounded-2xl text-center shadow-2xl w-3/4">
+          <h2 class="text-2xl font-bold text-amber-400 mb-2">🎉 發現定理！</h2>
+          <p class="text-white mb-4">不管怎麼變形，三個角加起來永遠是 <span class="text-amber-300 font-bold">180°</span>！</p>
+          <button onclick="closeDiscovery()" class="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded-full transition">太棒了</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-4 flex flex-wrap justify-center gap-4 flex-none">
+      <button id="quiz-btn" class="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold shadow-lg flex items-center gap-2 transition-all active:scale-95">
+        <span>❓</span> Hide Answer
+      </button>
+      <div class="w-px h-12 bg-slate-700 mx-2 hidden md:block"></div>
+      <button id="prev-btn" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl font-medium transition-all disabled:opacity-50">◀ 上一步</button>
+      <button id="next-btn" class="px-8 py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-xl font-bold shadow-lg flex items-center gap-2 transition-all active:scale-95">下一步 ▶</button>
+      <button id="reset-btn" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium transition-all">↺ 重置</button>
+    </div>
+
   </div>
+
   <script>
-    const defaultConfig = {
-      main_title: '📐 三角形內角探索',
-      instruction_text: '拖拽紅色圓點改變三角形形狀，或點擊「下一步」觀察內角大小！',
-      primary_color: '#fbbf24',
-      secondary_color: '#1e293b',
-      text_color: '#f8fafc',
-      accent_color: '#ff6b6b',
-      surface_color: '#334155'
-    };
-
-    // Triangle configuration - mutable (equilateral triangle by default)
+    // --- 設定 ---
+    const colors = { A: '#ef4444', B: '#3b82f6', C: '#22c55e' };
     let vertices = {
-      A: { x: 250, y: 76 },
-      B: { x: 410, y: 310 },
-      C: { x: 90, y: 310 }
+      A: { x: 250, y: 80 },
+      B: { x: 400, y: 320 },
+      C: { x: 100, y: 320 }
     };
-
-    // Animation states
+    
+    // 狀態
     const states = [
-      { position: 'A', status: '觀察頂點 A 的內角！', action: 'start' },
-      { position: 'A-angle', status: '頂點 A 的內角', action: 'angle', vertex: 'A' },
-      { position: 'turn-B', status: '移動到頂點 B...', action: 'turn', nextVertex: 'B' },
-      { position: 'B', status: '移動到頂點 B，觀察這裡的內角。', action: 'arrive' },
-      { position: 'B-angle', status: '頂點 B 的內角', action: 'angle', vertex: 'B' },
-      { position: 'turn-C', status: '移動到頂點 C...', action: 'turn', nextVertex: 'C' },
-      { position: 'C', status: '移動到頂點 C，觀察這裡的內角。', action: 'arrive' },
-      { position: 'C-angle', status: '頂點 C 的內角', action: 'angle', vertex: 'C' },
-      { position: 'turn-A', status: '返回起點...', action: 'turn', nextVertex: 'A' },
-      { position: 'complete', status: '🎉 返回起點，觀察三個內角的總和。', action: 'complete' }
+      { step: 0, target: 'A', msg: '從頂點 A (紅色) 開始。' },
+      { step: 1, target: 'A', action: 'showAngle', msg: '觀察 A 的內角。' },
+      { step: 2, target: 'B', msg: '移動到頂點 B...' },
+      { step: 3, target: 'B', action: 'showAngle', msg: '觀察 B 的內角。' },
+      { step: 4, target: 'C', msg: '移動到頂點 C...' },
+      { step: 5, target: 'C', action: 'showAngle', msg: '觀察 C 的內角。' },
+      { step: 6, target: 'A', msg: '回到起點 A。' },
+      { step: 7, target: 'A', action: 'proof', msg: '見證 180 度定理！' }
     ];
 
     let currentStep = 0;
-    let currentVertex = 'A';
-    let recordedAngles = { A: null, B: null, C: null };
+    let isQuizMode = false;
     let isDragging = false;
     let draggedVertex = null;
-    let showingArcs = false;
-    let activeArcsVertices = new Set(); // Track which vertices should show arcs
+    let computedAngles = { A: 0, B: 0, C: 0 };
 
     const svg = document.getElementById('triangle-svg');
-    const trianglePath = document.getElementById('triangle-path');
-    const vertexA = document.getElementById('vertex-a');
-    const vertexB = document.getElementById('vertex-b');
-    const vertexC = document.getElementById('vertex-c');
     const walker = document.getElementById('walker');
-    const angleDisplay = document.getElementById('angle-display');
-    const angleText = document.getElementById('angle-text');
+    const angleArcsGroup = document.getElementById('angle-arcs');
+    const proofArea = document.getElementById('proof-area');
     const statusText = document.getElementById('status-text');
-    const discoveryBox = document.getElementById('discovery-box');
-    const angleArcs = document.getElementById('angle-arcs');
-    const prevBtn = document.getElementById('prev-btn');
-    const nextBtn = document.getElementById('next-btn');
-    const resetBtn = document.getElementById('reset-btn');
+    const quizBtn = document.getElementById('quiz-btn');
 
-    // Drag and drop functionality
-    function getSVGCoordinates(event) {
-      const rect = svg.getBoundingClientRect();
-      const x = (event.clientX - rect.left) * (500 / rect.width);
-      const y = (event.clientY - rect.top) * (400 / rect.height);
-      return { x, y };
-    }
-
-    function updateTrianglePath() {
-      trianglePath.setAttribute('points', `${vertices.A.x},${vertices.A.y} ${vertices.B.x},${vertices.B.y} ${vertices.C.x},${vertices.C.y}`);
-      vertexA.setAttribute('cx', vertices.A.x);
-      vertexA.setAttribute('cy', vertices.A.y);
-      vertexB.setAttribute('cx', vertices.B.x);
-      vertexB.setAttribute('cy', vertices.B.y);
-      vertexC.setAttribute('cx', vertices.C.x);
-      vertexC.setAttribute('cy', vertices.C.y);
-      updateVertexLabels();
-    }
-
-    function updateVertexLabels() {
-      const labelA = document.getElementById('label-a');
-      const labelB = document.getElementById('label-b');
-      const labelC = document.getElementById('label-c');
-      
-      labelA.setAttribute('x', vertices.A.x);
-      labelA.setAttribute('y', vertices.A.y - 20);
-      labelB.setAttribute('x', vertices.B.x + 20);
-      labelB.setAttribute('y', vertices.B.y + 10);
-      labelC.setAttribute('x', vertices.C.x - 20);
-      labelC.setAttribute('y', vertices.C.y + 10);
-    }
-
-    function calculateAngle(vertex) {
-      const v = vertices[vertex];
-      let v1, v2;
-      
-      if (vertex === 'A') {
-        v1 = { x: vertices.B.x - v.x, y: vertices.B.y - v.y };
-        v2 = { x: vertices.C.x - v.x, y: vertices.C.y - v.y };
-      } else if (vertex === 'B') {
-        v1 = { x: vertices.C.x - v.x, y: vertices.C.y - v.y };
-        v2 = { x: vertices.A.x - v.x, y: vertices.A.y - v.y };
-      } else {
-        v1 = { x: vertices.A.x - v.x, y: vertices.A.y - v.y };
-        v2 = { x: vertices.B.x - v.x, y: vertices.B.y - v.y };
-      }
-      
-      const dot = v1.x * v2.x + v1.y * v2.y;
-      const mag1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y);
-      const mag2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y);
-      const cos = dot / (mag1 * mag2);
-      const angle = Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
-      
-      return Math.round(angle);
-    }
-
-    function drawInteriorAngle(vertex, angle) {
-      const arcId = `arc-${vertex}`;
-      let existingArc = document.getElementById(arcId);
-      if (existingArc) {
-        existingArc.remove();
-      }
-      
-      const pos = vertices[vertex];
-      const arc = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      arc.id = arcId;
-      
-      let v1, v2;
-      if (vertex === 'A') {
-        v1 = { x: vertices.B.x - pos.x, y: vertices.B.y - pos.y };
-        v2 = { x: vertices.C.x - pos.x, y: vertices.C.y - pos.y };
-      } else if (vertex === 'B') {
-        v1 = { x: vertices.C.x - pos.x, y: vertices.C.y - pos.y };
-        v2 = { x: vertices.A.x - pos.x, y: vertices.A.y - pos.y };
-      } else {
-        v1 = { x: vertices.A.x - pos.x, y: vertices.A.y - pos.y };
-        v2 = { x: vertices.B.x - pos.x, y: vertices.B.y - pos.y };
-      }
-      
-      const angle1 = Math.atan2(v1.y, v1.x) * 180 / Math.PI;
-      const angle2 = Math.atan2(v2.y, v2.x) * 180 / Math.PI;
-      
-      let startAngle = angle1;
-      let endAngle = angle2;
-      let diff = endAngle - startAngle;
-      if (diff < 0) diff += 360;
-      if (diff > 180) {
-        [startAngle, endAngle] = [endAngle, startAngle];
-      }
-
-      const radius = 35;
-      const startRad = (startAngle * Math.PI) / 180;
-      const endRad = (endAngle * Math.PI) / 180;
-      
-      const x1 = pos.x + radius * Math.cos(startRad);
-      const y1 = pos.y + radius * Math.sin(startRad);
-      const x2 = pos.x + radius * Math.cos(endRad);
-      const y2 = pos.y + radius * Math.sin(endRad);
-      
-      const largeArc = angle > 180 ? 1 : 0;
-      const pathData = `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`;
-      
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', pathData);
-      path.setAttribute('fill', 'none');
-      path.setAttribute('stroke', '#60a5fa');
-      path.setAttribute('stroke-width', '3');
-      path.setAttribute('opacity', '0.9');
-      
-      const triangleCenter = {
-        x: (vertices.A.x + vertices.B.x + vertices.C.x) / 3,
-        y: (vertices.A.y + vertices.B.y + vertices.C.y) / 3
+    // --- 計算角度 ---
+    function calculateAngles() {
+      const getRawAngle = (p1, p2, p3) => {
+        const v1 = { x: p1.x - p2.x, y: p1.y - p2.y };
+        const v2 = { x: p3.x - p2.x, y: p3.y - p2.y };
+        const dot = v1.x * v2.x + v1.y * v2.y;
+        const mag1 = Math.sqrt(v1.x**2 + v1.y**2);
+        const mag2 = Math.sqrt(v2.x**2 + v2.y**2);
+        return Math.acos(Math.max(-1, Math.min(1, dot / (mag1 * mag2)))) * (180 / Math.PI);
       };
-      const dirToCenter = {
-        x: triangleCenter.x - pos.x,
-        y: triangleCenter.y - pos.y
-      };
-      const angleToCenter = Math.atan2(dirToCenter.y, dirToCenter.x) * 180 / Math.PI;
-      const labelDist = 48;
-      const labelRad = (angleToCenter * Math.PI) / 180;
+
+      const rawA = getRawAngle(vertices.B, vertices.A, vertices.C);
+      const rawB = getRawAngle(vertices.A, vertices.B, vertices.C);
       
-      const labelX = pos.x + labelDist * Math.cos(labelRad);
-      const labelY = pos.y + labelDist * Math.sin(labelRad);
+      computedAngles.A = Math.round(rawA);
+      computedAngles.B = Math.round(rawB);
+      computedAngles.C = 180 - computedAngles.A - computedAngles.B;
       
-      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', labelX);
-      text.setAttribute('y', labelY);
-      text.setAttribute('text-anchor', 'middle');
-      text.setAttribute('dominant-baseline', 'middle');
-      text.setAttribute('fill', '#fbbf24');
-      text.setAttribute('font-size', '22');
-      text.setAttribute('font-weight', 'bold');
-      text.setAttribute('letter-spacing', '0.5');
-      text.setAttribute('paint-order', 'stroke');
-      text.setAttribute('stroke', '#1e293b');
-      text.setAttribute('stroke-width', '4');
-      text.setAttribute('stroke-linejoin', 'round');
-      text.textContent = `${angle}°`;
-      
-      arc.appendChild(path);
-      arc.appendChild(text);
-      angleArcs.appendChild(arc);
+      if (computedAngles.C <= 0) { computedAngles.C = 1; computedAngles.A -= 1; }
     }
 
-    function redrawAllActiveArcs() {
-      angleArcs.innerHTML = '';
-      recordedAngles.A = calculateAngle('A');
-      recordedAngles.B = calculateAngle('B');
-      recordedAngles.C = calculateAngle('C');
-      
-      // Redraw all active arcs
-      activeArcsVertices.forEach(vertex => {
-        drawInteriorAngle(vertex, recordedAngles[vertex]);
+    // --- 繪圖循環 ---
+    function render() {
+      calculateAngles();
+
+      const pathStr = `${vertices.A.x},${vertices.A.y} ${vertices.B.x},${vertices.B.y} ${vertices.C.x},${vertices.C.y}`;
+      document.getElementById('triangle-path').setAttribute('points', pathStr);
+
+      ['A', 'B', 'C'].forEach(v => {
+        const circle = document.getElementById(`vertex-${v.toLowerCase()}`);
+        circle.setAttribute('cx', vertices[v].x);
+        circle.setAttribute('cy', vertices[v].y);
+        
+        const label = document.getElementById(`label-${v.toLowerCase()}`);
+        const offsetX = v === 'A' ? 0 : (v === 'B' ? 25 : -25);
+        const offsetY = v === 'A' ? -25 : 25;
+        label.setAttribute('x', vertices[v].x + offsetX);
+        label.setAttribute('y', vertices[v].y + offsetY);
       });
-    }
 
-    function updateAngleRecords() {
-      recordedAngles.A = calculateAngle('A');
-      recordedAngles.B = calculateAngle('B');
-      recordedAngles.C = calculateAngle('C');
-      
-      document.getElementById('angle-a').textContent = `${recordedAngles.A}°`;
-      document.getElementById('angle-b').textContent = `${recordedAngles.B}°`;
-      document.getElementById('angle-c').textContent = `${recordedAngles.C}°`;
-      
-      const total = recordedAngles.A + recordedAngles.B + recordedAngles.C;
-      document.getElementById('total-angle').textContent = `${total}°`;
-    }
-
-    function moveWalkerTo(x, y) {
-      walker.style.transition = 'transform 0.8s ease-in-out';
-      walker.setAttribute('transform', `translate(${x}, ${y})`);
-    }
-
-    function executeStep(step) {
-      const state = states[step];
-      statusText.textContent = state.status;
-      angleDisplay.style.display = 'none';
-      showingArcs = false;
-      activeArcsVertices.clear();
-      angleArcs.innerHTML = '';
-      
-      switch (state.action) {
-        case 'start':
-          moveWalkerTo(vertices.A.x, vertices.A.y);
-          currentVertex = 'A';
-          updateAngleRecords();
-          break;
-        case 'angle':
-          showingArcs = true;
-          const angle = calculateAngle(state.vertex);
-          activeArcsVertices.add(state.vertex);
-          angleDisplay.style.display = 'block';
-          angleText.textContent = `內角 ${angle}°`;
-          drawInteriorAngle(state.vertex, angle);
-          statusText.textContent = `頂點 ${state.vertex} 的內角是 ${angle}°`;
-          break;
-        case 'arrive':
-          if (state.position === 'B') {
-            moveWalkerTo(vertices.B.x, vertices.B.y);
-            currentVertex = 'B';
-          } else if (state.position === 'C') {
-            moveWalkerTo(vertices.C.x, vertices.C.y);
-            currentVertex = 'C';
-          }
-          break;
-        case 'complete':
-          showingArcs = true;
-          moveWalkerTo(vertices.A.x, vertices.A.y);
-          currentVertex = 'A';
-          activeArcsVertices.add('A');
-          activeArcsVertices.add('B');
-          activeArcsVertices.add('C');
-          drawInteriorAngle('A', recordedAngles.A);
-          drawInteriorAngle('B', recordedAngles.B);
-          drawInteriorAngle('C', recordedAngles.C);
-          discoveryBox.style.display = 'block';
-          break;
+      if (isDragging && draggedVertex === 'A') {
+         walker.style.transition = 'none';
+         walker.setAttribute('transform', `translate(${vertices.A.x}, ${vertices.A.y})`);
       }
-      
-      updateButtons();
+
+      updatePanel();
+      renderCurrentStepVisuals();
     }
 
-    function updateButtons() {
-      prevBtn.disabled = currentStep === 0;
-      nextBtn.disabled = currentStep === states.length - 1;
-      
-      if (currentStep === states.length - 1) {
-        nextBtn.textContent = '✓ 完成';
+    function updatePanel() {
+      const elA = document.getElementById('record-a');
+      const elB = document.getElementById('record-b');
+      const elC = document.getElementById('record-c');
+      const elTotal = document.getElementById('record-total');
+      const elFormula = document.getElementById('total-formula');
+      const hint = document.getElementById('quiz-hint');
+
+      const stepReachedA = currentStep >= 1 || currentStep >= 7;
+      const stepReachedB = currentStep >= 3 || currentStep >= 7;
+      const stepReachedC = currentStep >= 5 || currentStep >= 7;
+
+      if (isQuizMode) {
+          // --- HIDE MODE (測驗) ---
+          elA.textContent = `${computedAngles.A}°`;
+          elA.className = "font-mono text-3xl text-white fade-in-text";
+          
+          elB.textContent = `${computedAngles.B}°`;
+          elB.className = "font-mono text-3xl text-white fade-in-text";
+          
+          elC.innerHTML = '<span class="math-x text-3xl text-red-400">x</span>';
+          elC.className = "fade-in-text";
+          
+          // 測驗模式下，總和固定顯示 180 (讓學生用來計算)
+          elFormula.innerHTML = "";
+          elTotal.textContent = "180°";
+          
+          hint.classList.remove('hidden');
+          
       } else {
-        nextBtn.innerHTML = '下一步 <span>▶</span>';
+          // --- SHOW ANSWER MODE (正常) ---
+          
+          // 角度顯示
+          elA.textContent = stepReachedA ? `${computedAngles.A}°` : "--";
+          elA.className = stepReachedA ? "font-mono text-3xl text-white fade-in-text" : "font-mono text-3xl text-slate-500";
+
+          elB.textContent = stepReachedB ? `${computedAngles.B}°` : "--";
+          elB.className = stepReachedB ? "font-mono text-3xl text-white fade-in-text" : "font-mono text-3xl text-slate-500";
+
+          elC.textContent = stepReachedC ? `${computedAngles.C}°` : "--";
+          elC.className = stepReachedC ? "font-mono text-3xl text-white fade-in-text" : "font-mono text-3xl text-slate-500";
+          
+          // 總和漸進顯示邏輯
+          if (stepReachedC) {
+              // 全部顯示
+              elFormula.innerHTML = `∠A + ∠B + ∠C =${computedAngles.A} + ${computedAngles.B} + ${computedAngles.C} =`;
+              elTotal.textContent = "180°";
+          } else if (stepReachedB) {
+              // 顯示 A + B
+              const sumAB = computedAngles.A + computedAngles.B;
+              // 算式：∠A + ∠B = 60 + 40 = 
+              elFormula.innerHTML = `∠A + ∠B = ${computedAngles.A} + ${computedAngles.B} =`;
+              elTotal.textContent = `${sumAB}°`;
+          } else if (stepReachedA) {
+              // 只顯示 A
+              elFormula.innerHTML = "∠A =";
+              elTotal.textContent = `${computedAngles.A}°`;
+          } else {
+              // 初始
+              elFormula.innerHTML = "";
+              elTotal.textContent = "0°";
+          }
+
+          hint.classList.add('hidden');
       }
     }
 
-    function reset() {
-      vertices = {
-        A: { x: 250, y: 76 },
-        B: { x: 410, y: 310 },
-        C: { x: 90, y: 310 }
-      };
-      currentStep = 0;
-      currentVertex = 'A';
-      showingArcs = false;
-      activeArcsVertices.clear();
-      angleArcs.innerHTML = '';
-      discoveryBox.style.display = 'none';
-      updateTrianglePath();
-      updateAngleRecords();
-      executeStep(0);
+    function createArc(vertexKey, cx, cy, startVertex, endVertex) {
+        const radius = 40;
+        const color = colors[vertexKey];
+        const angleVal = computedAngles[vertexKey];
+        
+        const rad1 = Math.atan2(startVertex.y - cy, startVertex.x - cx);
+        const rad2 = Math.atan2(endVertex.y - cy, endVertex.x - cx);
+        
+        let startAngle = rad1;
+        let endAngle = rad2;
+        let diff = endAngle - startAngle;
+        while (diff <= -Math.PI) diff += 2 * Math.PI;
+        while (diff > Math.PI) diff -= 2 * Math.PI;
+        if (diff < 0) [startAngle, endAngle] = [endAngle, startAngle];
+
+        const x1 = cx + radius * Math.cos(startAngle);
+        const y1 = cy + radius * Math.sin(startAngle);
+        const x2 = cx + radius * Math.cos(endAngle);
+        const y2 = cy + radius * Math.sin(endAngle);
+        const largeArc = Math.abs(diff) > Math.PI ? 1 : 0;
+        
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`);
+        path.setAttribute("fill", color);
+        path.setAttribute("fill-opacity", "0.3");
+        path.setAttribute("stroke", color);
+        path.setAttribute("stroke-width", "2");
+        g.appendChild(path);
+
+        // 標示文字
+        let midAngle = (startAngle + endAngle) / 2;
+        if (Math.abs(endAngle - startAngle) > Math.PI) midAngle += Math.PI;
+
+        const textDist = 60;
+        const textX = cx + textDist * Math.cos(midAngle);
+        const textY = cy + textDist * Math.sin(midAngle);
+
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", textX);
+        text.setAttribute("y", textY);
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("dominant-baseline", "middle");
+        text.style.textShadow = "0px 2px 4px rgba(0,0,0,0.8)";
+        
+        // 標示邏輯
+        if (isQuizMode) {
+            if (vertexKey === 'C') {
+                text.textContent = "x";
+                text.setAttribute("fill", "#f87171"); 
+                text.setAttribute("font-size", "28");
+                text.setAttribute("font-family", "'Times New Roman', serif");
+                text.setAttribute("font-style", "italic");
+                text.setAttribute("font-weight", "bold");
+            } else {
+                text.textContent = `${angleVal}°`;
+                text.setAttribute("fill", "white");
+                text.setAttribute("font-size", "16");
+                text.setAttribute("font-weight", "bold");
+            }
+        } else {
+            text.textContent = `${angleVal}°`;
+            text.setAttribute("fill", "white");
+            text.setAttribute("font-size", "16");
+            text.setAttribute("font-weight", "bold");
+        }
+        g.appendChild(text);
+        
+        return g;
     }
 
-    // Drag event handlers
-    svg.addEventListener('mousedown', (e) => {
+    function renderCurrentStepVisuals() {
+        angleArcsGroup.innerHTML = '';
+        proofArea.style.opacity = '0';
+        const s = states[currentStep];
+
+        const stepReachedA = currentStep >= 1;
+        const stepReachedB = currentStep >= 3;
+        const stepReachedC = currentStep >= 5;
+        
+        const showA = isQuizMode || stepReachedA;
+        const showB = isQuizMode || stepReachedB;
+        const showC = isQuizMode || stepReachedC;
+
+        if (showA) angleArcsGroup.appendChild(createArc('A', vertices.A.x, vertices.A.y, vertices.B, vertices.C));
+        if (showB) angleArcsGroup.appendChild(createArc('B', vertices.B.x, vertices.B.y, vertices.C, vertices.A));
+        if (showC) angleArcsGroup.appendChild(createArc('C', vertices.C.x, vertices.C.y, vertices.A, vertices.B));
+
+        if (s.action === 'proof') {
+            showVisualProof();
+        }
+    }
+
+    function goToStep(index) {
+        currentStep = index;
+        const s = states[currentStep];
+        statusText.textContent = s.msg;
+        const targetPos = vertices[s.target];
+        
+        walker.style.transition = 'transform 1.0s linear';
+        walker.setAttribute('transform', `translate(${targetPos.x}, ${targetPos.y})`);
+        
+        renderCurrentStepVisuals();
+        updatePanel();
+        
+        document.getElementById('prev-btn').disabled = (index === 0);
+        const nextBtn = document.getElementById('next-btn');
+        if (index === states.length - 1) {
+            nextBtn.innerHTML = '🎉 完成';
+            document.getElementById('discovery-msg').classList.remove('hidden');
+        } else {
+            nextBtn.innerHTML = '下一步 ▶';
+            document.getElementById('discovery-msg').classList.add('hidden');
+        }
+    }
+
+    function showVisualProof() {
+        proofArea.style.opacity = '1';
+        const r = 50;
+        const startB = 180;
+        const endB = 180 + computedAngles.B;
+        createWedge(0, 0, r, startB, endB, colors.B);
+        const startA = endB;
+        const endA = startA + computedAngles.A;
+        createWedge(0, 0, r, startA, endA, colors.A);
+        const startC = endA;
+        const endC = 360; 
+        createWedge(0, 0, r, startC, endC, colors.C, isQuizMode);
+    }
+
+    function createWedge(cx, cy, r, startDeg, endDeg, color, isHidden = false) {
+        const rad1 = startDeg * Math.PI / 180;
+        const rad2 = endDeg * Math.PI / 180;
+        const x1 = cx + r * Math.cos(rad1);
+        const y1 = cy + r * Math.sin(rad1);
+        const x2 = cx + r * Math.cos(rad2);
+        const y2 = cy + r * Math.sin(rad2);
+        
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2} Z`);
+        path.setAttribute("fill", color);
+        path.setAttribute("stroke", "white");
+        path.setAttribute("stroke-width", "1");
+        path.style.transformOrigin = "0px 0px";
+        path.style.transform = "scale(0)";
+        path.style.transition = "transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
+        proofArea.appendChild(path);
+        
+        if (isHidden) {
+             const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+             const midRad = (rad1 + rad2) / 2;
+             text.setAttribute("x", cx + (r+25) * Math.cos(midRad));
+             text.setAttribute("y", cy + (r+25) * Math.sin(midRad));
+             
+             text.textContent = "x";
+             text.setAttribute("fill", color);
+             text.setAttribute("font-size", "20");
+             text.setAttribute("font-family", "'Times New Roman', serif");
+             text.setAttribute("font-style", "italic");
+             text.setAttribute("font-weight", "bold");
+             
+             text.setAttribute("text-anchor", "middle");
+             text.style.opacity = "0";
+             text.style.transition = "opacity 0.5s 0.5s";
+             proofArea.appendChild(text);
+             setTimeout(() => text.style.opacity = "1", 100);
+        }
+        setTimeout(() => path.style.transform = "scale(1)", 100);
+    }
+
+    // --- 觸控邏輯 ---
+
+    function getEventPoint(e) {
+        if (e.touches && e.touches.length > 0) {
+            return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+            return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+        }
+        return { x: e.clientX, y: e.clientY };
+    }
+
+    function handleStart(e) {
       if (e.target.classList.contains('draggable-vertex')) {
+        if (e.type === 'touchstart') e.preventDefault();
         isDragging = true;
         draggedVertex = e.target.id.split('-')[1].toUpperCase();
-        e.target.style.cursor = 'grabbing';
       }
-    });
-
-    document.addEventListener('mousemove', (e) => {
-      if (isDragging && draggedVertex) {
-        const coords = getSVGCoordinates(e);
-        const padding = 20;
-        const x = Math.max(padding, Math.min(500 - padding, coords.x));
-        const y = Math.max(padding, Math.min(400 - padding, coords.y));
-        
-        vertices[draggedVertex].x = x;
-        vertices[draggedVertex].y = y;
-        updateTrianglePath();
-        updateAngleRecords();
-        redrawAllActiveArcs();
-
-// ★★★ 新增這段：如果拖曳的是 A，讓 walker 跟著動 ★★★
-    if (draggedVertex === 'A') {
-      // 暫時移除動畫過渡效果，讓跟隨更即時（避免延遲感）
-      walker.style.transition = 'none'; 
-      walker.setAttribute('transform', `translate(${x}, ${y})`);
     }
-      }
-    });
 
-    document.addEventListener('mouseup', () => {
-      if (isDragging) {
-        isDragging = false;
-        if (draggedVertex) {
-          document.getElementById(`vertex-${draggedVertex.toLowerCase()}`).style.cursor = 'grab';
-        }
-        draggedVertex = null;
-      }
-    });
+    function handleMove(e) {
+      if (!isDragging) return;
+      e.preventDefault(); 
 
-    nextBtn.addEventListener('click', () => {
-      if (currentStep < states.length - 1) {
-        currentStep++;
-        executeStep(currentStep);
-      }
-    });
-
-    prevBtn.addEventListener('click', () => {
-      if (currentStep > 0) {
-        const targetStep = currentStep - 1;
-        reset();
-        for (let i = 0; i <= targetStep; i++) {
-          currentStep = i;
-          executeStep(i);
-        }
-      }
-    });
-
-    resetBtn.addEventListener('click', reset);
-
-    function onConfigChange(config) {
-      const title = config.main_title || defaultConfig.main_title;
-      const instruction = config.instruction_text || defaultConfig.instruction_text;
-      const primaryColor = config.primary_color || defaultConfig.primary_color;
+      const point = getEventPoint(e);
+      const pt = svg.createSVGPoint();
+      pt.x = point.x;
+      pt.y = point.y;
       
-      document.getElementById('main-title').textContent = title;
-      document.getElementById('instruction-text').textContent = instruction;
-      document.getElementById('triangle-path').setAttribute('stroke', primaryColor);
-      nextBtn.style.backgroundColor = primaryColor;
+      const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+      
+      const x = Math.max(20, Math.min(480, svgP.x));
+      const y = Math.max(20, Math.min(430, svgP.y));
+      
+      vertices[draggedVertex] = { x, y };
+      
+      if (currentStep === 7) {
+          closeDiscovery();
+          goToStep(0);
+      }
+      render();
     }
 
-    function mapToCapabilities(config) {
-      return {
-        recolorables: [
-          {
-            get: () => config.secondary_color || defaultConfig.secondary_color,
-            set: (value) => {
-              config.secondary_color = value;
-              window.elementSdk.setConfig({ secondary_color: value });
-            }
-          },
-          {
-            get: () => config.surface_color || defaultConfig.surface_color,
-            set: (value) => {
-              config.surface_color = value;
-              window.elementSdk.setConfig({ surface_color: value });
-            }
-          },
-          {
-            get: () => config.text_color || defaultConfig.text_color,
-            set: (value) => {
-              config.text_color = value;
-              window.elementSdk.setConfig({ text_color: value });
-            }
-          },
-          {
-            get: () => config.primary_color || defaultConfig.primary_color,
-            set: (value) => {
-              config.primary_color = value;
-              window.elementSdk.setConfig({ primary_color: value });
-            }
-          },
-          {
-            get: () => config.accent_color || defaultConfig.accent_color,
-            set: (value) => {
-              config.accent_color = value;
-              window.elementSdk.setConfig({ accent_color: value });
-            }
-          }
-        ],
-        borderables: [],
-        fontEditable: undefined,
-        fontSizeable: undefined
-      };
+    function handleEnd(e) {
+      isDragging = false; 
+      draggedVertex = null; 
     }
 
-    function mapToEditPanelValues(config) {
-      return new Map([
-        ['main_title', config.main_title || defaultConfig.main_title],
-        ['instruction_text', config.instruction_text || defaultConfig.instruction_text]
-      ]);
-    }
+    svg.addEventListener('mousedown', handleStart);
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
 
-    if (window.elementSdk) {
-      window.elementSdk.init({
-        defaultConfig,
-        onConfigChange,
-        mapToCapabilities,
-        mapToEditPanelValues
-      });
-    }
+    svg.addEventListener('touchstart', handleStart, { passive: false });
+    window.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('touchend', handleEnd);
 
-    updateTrianglePath();
-    updateAngleRecords();
-    executeStep(0);
+    // --- 其他事件 ---
+    document.getElementById('next-btn').addEventListener('click', () => { if (currentStep < states.length - 1) goToStep(currentStep + 1); });
+    document.getElementById('prev-btn').addEventListener('click', () => { if (currentStep > 0) goToStep(currentStep - 1); });
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      vertices = { A: { x: 250, y: 80 }, B: { x: 400, y: 320 }, C: { x: 100, y: 320 } };
+      closeDiscovery();
+      goToStep(0);
+      render();
+    });
+
+    quizBtn.addEventListener('click', () => {
+      isQuizMode = !isQuizMode;
+      if (isQuizMode) {
+          quizBtn.classList.replace('bg-purple-600', 'bg-red-500');
+          quizBtn.classList.replace('hover:bg-purple-500', 'hover:bg-red-400');
+          quizBtn.innerHTML = '<span>👁️</span> Show Answer';
+      } else {
+          quizBtn.classList.replace('bg-red-500', 'bg-purple-600');
+          quizBtn.classList.replace('hover:bg-red-400', 'hover:bg-purple-500');
+          quizBtn.innerHTML = '<span>❓</span> Hide Answer';
+      }
+      render();
+    });
+
+    function closeDiscovery() { document.getElementById('discovery-msg').classList.add('hidden'); }
+    render();
+    goToStep(0);
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9cc8eb14f4f906fc',t:'MTc3MDg2NjA5Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
