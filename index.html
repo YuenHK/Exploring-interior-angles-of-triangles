@@ -2,7 +2,7 @@
 <html lang="zh-TW" class="h-full">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>三角形內角探索</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -14,19 +14,39 @@
         touch-action: none; 
         -webkit-user-select: none;
         user-select: none;
+        height: 100dvh; 
+        overflow: hidden; 
     }
     
-    /* 數學變數 x 的樣式 */
-    .math-x {
-        font-family: 'Times New Roman', serif;
-        font-style: italic;
-    }
+    .math-x { font-family: 'Times New Roman', serif; font-style: italic; }
 
+    /* 外層光暈動畫 (保持不變) */
     @keyframes pulse-glow {
       0%, 100% { filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5)); }
       50% { filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.8)); }
     }
     .walker-glow { animation: pulse-glow 2s ease-in-out infinite; }
+
+    /* ★★★ 新增：走路動畫 (上下跳動 + 輕微搖擺) ★★★ */
+    @keyframes walk-anim {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      25% { transform: translateY(-8px) rotate(5deg); }
+      75% { transform: translateY(-8px) rotate(-5deg); }
+    }
+    .is-walking {
+      animation: walk-anim 0.3s infinite ease-in-out;
+    }
+
+    /* ★★★ 新增：觀察動畫 (放大縮小 + 左右張望) ★★★ */
+    @keyframes observe-anim {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      50% { transform: scale(1.15) rotate(0deg); } /* 呼吸感 */
+      25% { transform: scale(1.05) rotate(-10deg); } /* 左看 */
+      75% { transform: scale(1.05) rotate(10deg); } /* 右看 */
+    }
+    .is-observing {
+      animation: observe-anim 2s infinite ease-in-out;
+    }
     
     .draggable-vertex {
       transition: r 0.2s, filter 0.2s;
@@ -35,59 +55,64 @@
     }
     .draggable-vertex:active {
       cursor: grabbing;
-      r: 18; 
+      r: 24; 
+      filter: drop-shadow(0 0 8px rgba(255,255,255,0.8));
     }
     .hidden { display: none !important; }
     
-    /* 數值出現時的淡入效果 */
     .fade-in-text { animation: fadeIn 0.5s ease-in; }
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(-5px); }
         to { opacity: 1; transform: translateY(0); }
     }
 
-    .angle-row {
-        padding: 0.75rem 1rem;
+    .angle-row { padding: 0.5rem 1rem; }
+    
+    /* 確保圖片變換時中心點正確 */
+    #walker-img {
+        transform-box: fill-box;
+        transform-origin: center;
     }
   </style>
 </head>
-<body class="h-full m-0 p-0 bg-slate-900 text-slate-100 overflow-hidden">
+<body class="bg-slate-900 text-slate-100 flex flex-col">
 
-  <div class="w-full max-w-7xl mx-auto p-4 md:p-6 h-full flex flex-col justify-center">
+  <div class="w-full h-full max-w-[1366px] mx-auto p-2 md:p-4 flex flex-col">
     
     <div class="text-center mb-2 flex-none">
-      <h1 class="text-2xl md:text-4xl font-bold mb-1 text-amber-400">📐 三角形內角大發現</h1>
+      <h1 class="text-xl md:text-3xl font-bold mb-1 text-amber-400">📐 三角形內角大發現</h1>
     </div>
 
-    <div class="flex flex-col lg:flex-row gap-4 lg:gap-8 flex-1 min-h-0">
+   <div class="flex flex-col md:flex-row gap-3 md:gap-6 flex-none min-h-0 items-stretch">
       
-      <div class="w-full lg:w-80 flex flex-col gap-4 order-2 lg:order-1 flex-none">
+      <div class="w-full md:w-72 lg:w-80 flex flex-col gap-2 order-2 md:order-1 flex-none">
         
-        <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-lg">
-          <h3 class="text-amber-400 font-bold mb-2">📍 觀察員 MISS WONG 狀態<img src='https://i.imgur.com/xR6lY2Y.png' width='50' height='50' alt="Centered image"></h3>
+       <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-lg">
+          <h3 class="text-amber-400 font-bold mb-2">📍 觀察員 MISS WONG 狀態<div class="flex justify-center">
+  <img src='https://i.imgur.com/xR6lY2Y.png' width='80' height='80' alt="Centered image">
+</div></h3>
           <p id="status-text" class="text-slate-300 text-sm">請拖曳紅點 A 帶我移動。</p>
         </div>
-
-        <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-lg flex-1 flex flex-col justify-center">
-          <h3 class="text-blue-400 font-bold mb-4 text-xl">📐 角度記錄</h3>
+        <div class="bg-slate-800 rounded-2xl p-3 border border-slate-700 shadow-lg flex-1 flex flex-col justify-center min-h-0 overflow-y-auto">
+          <h3 class="text-blue-400 font-bold mb-2 text-xl text-center">📐 角度記錄</h3>
           
-          <div class="space-y-4 text-sm flex-1">
-            <div class="angle-row flex justify-between items-center rounded bg-slate-700/50 border-l-4 border-red-500">
+          <div class="space-y-2 flex-1 flex flex-col justify-center">
+            <div class="angle-row flex justify-between items-center rounded bg-slate-700/50 border-l-8 border-red-500 h-14">
               <span class="text-red-400 font-bold text-xl">∠A</span>
               <span id="record-a" class="font-mono text-3xl transition-all duration-300">--</span>
             </div>
 
-            <div class="angle-row flex justify-between items-center rounded bg-slate-700/50 border-l-4 border-blue-500">
+            <div class="angle-row flex justify-between items-center rounded bg-slate-700/50 border-l-8 border-blue-500 h-14">
               <span class="text-blue-400 font-bold text-xl">∠B</span>
               <span id="record-b" class="font-mono text-3xl transition-all duration-300">--</span>
             </div>
 
-            <div class="angle-row flex justify-between items-center rounded bg-slate-700/50 border-l-4 border-green-500 relative">
+            <div class="angle-row flex justify-between items-center rounded bg-slate-700/50 border-l-8 border-green-500 h-14 relative">
               <span class="text-green-400 font-bold text-xl">∠C</span>
               <span id="record-c" class="font-mono text-3xl transition-all duration-300">--</span>
             </div>
 
-            <div class="border-t border-slate-600 pt-3 mt-2 px-1">
+            <div class="border-t-2 border-slate-600 pt-2 mt-1 px-2">
               <div class="flex justify-between items-end mb-1">
                 <span class="text-amber-400 font-bold text-lg">內角和</span>
                 <span id="total-formula" class="text-slate-400 text-xs font-mono text-right"></span>
@@ -98,14 +123,14 @@
             </div>
           </div>
 
-          <div id="quiz-hint" class="hidden mt-4 text-sm text-center text-slate-400 bg-slate-900/50 p-3 rounded">
+          <div id="quiz-hint" class="hidden mt-2 text-sm text-center text-slate-400 bg-slate-900/50 p-2 rounded-lg">
             提示：180 - A - B = <span class="math-x text-lg">x</span>
           </div>
         </div>
       </div>
 
-      <div class="flex-1 order-1 lg:order-2 bg-slate-800 rounded-3xl border border-slate-700 shadow-2xl relative overflow-hidden" style="touch-action: none;">
-        <svg id="triangle-svg" viewBox="0 0 500 450" class="w-full h-full select-none" style="touch-action: none;">
+      <div class="flex-1 order-1 md:order-2 bg-slate-800 rounded-3xl border border-slate-700 shadow-2xl relative overflow-hidden max-h-[60vh]" style="touch-action: none;">
+        <svg id="triangle-svg" viewBox="0 0 500 400" preserveAspectRatio="xMidYMid meet" class="w-full h-full select-none" style="touch-action: none;">
           <defs>
             <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
               <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
@@ -115,57 +140,60 @@
             </clipPath>
           </defs>
 
-          <rect width="500" height="450" fill="url(#grid)" />
+          <rect width="500" height="400" fill="url(#grid)" />
 
-          <g id="proof-area" transform="translate(250, 450)" opacity="0">
+          <g id="proof-area" transform="translate(250, 380)" opacity="0">
              <line x1="-100" y1="0" x2="100" y2="0" stroke="#64748b" stroke-width="2" stroke-dasharray="5,5" />
-             <text x="0" y="25" text-anchor="middle" fill="#94a3b8" font-size="14">平角 (180°)</text>
+             <text x="0" y="18" text-anchor="middle" fill="#94a3b8" font-size="12">平角 (180°)</text>
           </g>
 
           <polygon id="triangle-path" points="0,0 0,0 0,0" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="4" stroke-linejoin="round" />
           <g id="angle-arcs"></g>
 
-          <circle id="vertex-a" r="14" fill="#ef4444" stroke="white" stroke-width="2" class="draggable-vertex" />
-          <circle id="vertex-b" r="14" fill="#3b82f6" stroke="white" stroke-width="2" class="draggable-vertex" />
-          <circle id="vertex-c" r="14" fill="#22c55e" stroke="white" stroke-width="2" class="draggable-vertex" />
+          <circle id="vertex-a" r="18" fill="#ef4444" stroke="white" stroke-width="3" class="draggable-vertex" />
+          <circle id="vertex-b" r="18" fill="#3b82f6" stroke="white" stroke-width="3" class="draggable-vertex" />
+          <circle id="vertex-c" r="18" fill="#22c55e" stroke="white" stroke-width="3" class="draggable-vertex" />
 
-          <text id="label-a" fill="#ef4444" font-weight="bold" font-size="18" text-anchor="middle" pointer-events="none">A</text>
-          <text id="label-b" fill="#3b82f6" font-weight="bold" font-size="18" text-anchor="start" pointer-events="none">B</text>
-          <text id="label-c" fill="#22c55e" font-weight="bold" font-size="18" text-anchor="end" pointer-events="none">C</text>
+          <text id="label-a" fill="#ef4444" font-weight="bold" font-size="20" text-anchor="middle" pointer-events="none">A</text>
+          <text id="label-b" fill="#3b82f6" font-weight="bold" font-size="20" text-anchor="start" pointer-events="none">B</text>
+          <text id="label-c" fill="#22c55e" font-weight="bold" font-size="20" text-anchor="end" pointer-events="none">C</text>
 
           <g id="walker" transform="translate(0,0)" class="walker-glow" pointer-events="none" style="transition: transform 1.0s linear;">
             <circle cx="0" cy="0" r="23" fill="white" />
             <image 
+              id="walker-img"
               href="https://i.imgur.com/xR6lY2Y.png" 
               x="-20" y="-20" width="40" height="40" 
               clip-path="url(#circle-clip)"
               preserveAspectRatio="xMidYMid slice"
+              class="is-observing" 
             />
           </g>
         </svg>
 
-        <div id="discovery-msg" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-900/95 backdrop-blur border-2 border-amber-400 p-6 rounded-2xl text-center shadow-2xl w-3/4">
-          <h2 class="text-2xl font-bold text-amber-400 mb-2">🎉 發現定理！</h2>
-          <p class="text-white mb-4">不管怎麼變形，三個角加起來永遠是 <span class="text-amber-300 font-bold">180°</span>！</p>
-          <button onclick="closeDiscovery()" class="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded-full transition">太棒了</button>
+        <div id="discovery-msg" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-900/95 backdrop-blur border-4 border-amber-400 p-6 rounded-3xl text-center shadow-2xl w-4/5 max-w-md z-50">
+          <h2 class="text-2xl md:text-3xl font-bold text-amber-400 mb-4">🎉 發現定理！</h2>
+          <p class="text-white mb-6 text-lg">不管怎麼變形，三個角加起來永遠是 <span class="text-amber-300 font-bold">180°</span>！</p>
+          <button onclick="closeDiscovery()" class="px-8 py-3 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-lg rounded-full transition shadow-lg">太棒了</button>
         </div>
       </div>
     </div>
 
-    <div class="mt-4 flex flex-wrap justify-center gap-4 flex-none">
-      <button id="quiz-btn" class="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold shadow-lg flex items-center gap-2 transition-all active:scale-95">
+<div class="mt-2 md:mt-4 mb-10 flex flex-wrap justify-center gap-2 md:gap-4 flex-none pb-safe">
+      <button id="quiz-btn" class="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-base md:text-lg shadow-lg flex items-center gap-2 transition-all active:scale-95 touch-manipulation">
         <span>❓</span> Hide Answer
       </button>
-      <div class="w-px h-12 bg-slate-700 mx-2 hidden md:block"></div>
-      <button id="prev-btn" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl font-medium transition-all disabled:opacity-50">◀ 上一步</button>
-      <button id="next-btn" class="px-8 py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-xl font-bold shadow-lg flex items-center gap-2 transition-all active:scale-95">下一步 ▶</button>
-      <button id="reset-btn" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium transition-all">↺ 重置</button>
+      
+      <div class="w-px h-10 bg-slate-700 mx-1 hidden md:block"></div>
+      
+      <button id="prev-btn" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl font-medium text-base md:text-lg transition-all disabled:opacity-50 touch-manipulation">◀ 上一步</button>
+      <button id="next-btn" class="px-8 py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-xl font-bold text-base md:text-lg shadow-lg flex items-center gap-2 transition-all active:scale-95 touch-manipulation">下一步 ▶</button>
+      <button id="reset-btn" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium text-base md:text-lg transition-all touch-manipulation">↺ 重置</button>
     </div>
 
   </div>
 
   <script>
-    // --- 設定 ---
     const colors = { A: '#ef4444', B: '#3b82f6', C: '#22c55e' };
     let vertices = {
       A: { x: 250, y: 80 },
@@ -173,7 +201,6 @@
       C: { x: 100, y: 320 }
     };
     
-    // 狀態
     const states = [
       { step: 0, target: 'A', msg: '從頂點 A (紅色) 開始。' },
       { step: 1, target: 'A', action: 'showAngle', msg: '觀察 A 的內角。' },
@@ -190,15 +217,18 @@
     let isDragging = false;
     let draggedVertex = null;
     let computedAngles = { A: 0, B: 0, C: 0 };
+    
+    // 動畫計時器
+    let walkTimeout = null;
 
     const svg = document.getElementById('triangle-svg');
     const walker = document.getElementById('walker');
+    const walkerImg = document.getElementById('walker-img'); // ★ 取得圖片元素
     const angleArcsGroup = document.getElementById('angle-arcs');
     const proofArea = document.getElementById('proof-area');
     const statusText = document.getElementById('status-text');
     const quizBtn = document.getElementById('quiz-btn');
 
-    // --- 計算角度 ---
     function calculateAngles() {
       const getRawAngle = (p1, p2, p3) => {
         const v1 = { x: p1.x - p2.x, y: p1.y - p2.y };
@@ -208,41 +238,35 @@
         const mag2 = Math.sqrt(v2.x**2 + v2.y**2);
         return Math.acos(Math.max(-1, Math.min(1, dot / (mag1 * mag2)))) * (180 / Math.PI);
       };
-
       const rawA = getRawAngle(vertices.B, vertices.A, vertices.C);
       const rawB = getRawAngle(vertices.A, vertices.B, vertices.C);
-      
       computedAngles.A = Math.round(rawA);
       computedAngles.B = Math.round(rawB);
       computedAngles.C = 180 - computedAngles.A - computedAngles.B;
-      
       if (computedAngles.C <= 0) { computedAngles.C = 1; computedAngles.A -= 1; }
     }
 
-    // --- 繪圖循環 ---
     function render() {
       calculateAngles();
-
       const pathStr = `${vertices.A.x},${vertices.A.y} ${vertices.B.x},${vertices.B.y} ${vertices.C.x},${vertices.C.y}`;
       document.getElementById('triangle-path').setAttribute('points', pathStr);
-
       ['A', 'B', 'C'].forEach(v => {
         const circle = document.getElementById(`vertex-${v.toLowerCase()}`);
         circle.setAttribute('cx', vertices[v].x);
         circle.setAttribute('cy', vertices[v].y);
-        
         const label = document.getElementById(`label-${v.toLowerCase()}`);
         const offsetX = v === 'A' ? 0 : (v === 'B' ? 25 : -25);
-        const offsetY = v === 'A' ? -25 : 25;
+        const offsetY = v === 'A' ? -30 : 30;
         label.setAttribute('x', vertices[v].x + offsetX);
         label.setAttribute('y', vertices[v].y + offsetY);
       });
-
       if (isDragging && draggedVertex === 'A') {
          walker.style.transition = 'none';
          walker.setAttribute('transform', `translate(${vertices.A.x}, ${vertices.A.y})`);
+         // 拖曳時強制設為觀察模式，比較不暈
+         walkerImg.classList.remove('is-walking');
+         walkerImg.classList.add('is-observing');
       }
-
       updatePanel();
       renderCurrentStepVisuals();
     }
@@ -260,56 +284,45 @@
       const stepReachedC = currentStep >= 5 || currentStep >= 7;
 
       if (isQuizMode) {
-          // --- HIDE MODE (測驗) ---
           elA.textContent = `${computedAngles.A}°`;
-          elA.className = "font-mono text-3xl text-white fade-in-text";
+          elA.className = "font-mono text-3xl md:text-4xl text-white fade-in-text";
           
           elB.textContent = `${computedAngles.B}°`;
-          elB.className = "font-mono text-3xl text-white fade-in-text";
+          elB.className = "font-mono text-3xl md:text-4xl text-white fade-in-text";
           
-          elC.innerHTML = '<span class="math-x text-3xl text-red-400">x</span>';
+          elC.innerHTML = '<span class="math-x text-3xl md:text-4xl text-red-400">x</span>';
           elC.className = "fade-in-text";
           
-          // 測驗模式下，總和固定顯示 180 (讓學生用來計算)
           elFormula.innerHTML = "";
           elTotal.textContent = "180°";
-          
           hint.classList.remove('hidden');
-          
       } else {
-          // --- SHOW ANSWER MODE (正常) ---
-          
-          // 角度顯示
           elA.textContent = stepReachedA ? `${computedAngles.A}°` : "--";
-          elA.className = stepReachedA ? "font-mono text-3xl text-white fade-in-text" : "font-mono text-3xl text-slate-500";
+          elA.className = stepReachedA ? "font-mono text-3xl md:text-4xl text-white fade-in-text" : "font-mono text-3xl md:text-4xl text-slate-500";
 
           elB.textContent = stepReachedB ? `${computedAngles.B}°` : "--";
-          elB.className = stepReachedB ? "font-mono text-3xl text-white fade-in-text" : "font-mono text-3xl text-slate-500";
+          elB.className = stepReachedB ? "font-mono text-3xl md:text-4xl text-white fade-in-text" : "font-mono text-3xl md:text-4xl text-slate-500";
 
           elC.textContent = stepReachedC ? `${computedAngles.C}°` : "--";
-          elC.className = stepReachedC ? "font-mono text-3xl text-white fade-in-text" : "font-mono text-3xl text-slate-500";
+          elC.className = stepReachedC ? "font-mono text-3xl md:text-4xl text-white fade-in-text" : "font-mono text-3xl md:text-4xl text-slate-500";
           
-          // 總和漸進顯示邏輯
-          if (stepReachedC) {
+         if (stepReachedC) {
               // 全部顯示
-              elFormula.innerHTML = `∠A + ∠B + ∠C =${computedAngles.A} + ${computedAngles.B} + ${computedAngles.C} =`;
+              elFormula.innerHTML = `∠A + ∠B + ∠C =${computedAngles.A}° + ${computedAngles.B}° + ${computedAngles.C}° =`;
               elTotal.textContent = "180°";
           } else if (stepReachedB) {
               // 顯示 A + B
               const sumAB = computedAngles.A + computedAngles.B;
               // 算式：∠A + ∠B = 60 + 40 = 
-              elFormula.innerHTML = `∠A + ∠B = ${computedAngles.A} + ${computedAngles.B} =`;
+              elFormula.innerHTML = `∠A + ∠B = ${computedAngles.A}° + ${computedAngles.B}° =`;
               elTotal.textContent = `${sumAB}°`;
           } else if (stepReachedA) {
-              // 只顯示 A
               elFormula.innerHTML = "∠A =";
               elTotal.textContent = `${computedAngles.A}°`;
           } else {
-              // 初始
               elFormula.innerHTML = "";
               elTotal.textContent = "0°";
           }
-
           hint.classList.add('hidden');
       }
     }
@@ -318,10 +331,8 @@
         const radius = 40;
         const color = colors[vertexKey];
         const angleVal = computedAngles[vertexKey];
-        
         const rad1 = Math.atan2(startVertex.y - cy, startVertex.x - cx);
         const rad2 = Math.atan2(endVertex.y - cy, endVertex.x - cx);
-        
         let startAngle = rad1;
         let endAngle = rad2;
         let diff = endAngle - startAngle;
@@ -344,14 +355,11 @@
         path.setAttribute("stroke-width", "2");
         g.appendChild(path);
 
-        // 標示文字
         let midAngle = (startAngle + endAngle) / 2;
         if (Math.abs(endAngle - startAngle) > Math.PI) midAngle += Math.PI;
-
         const textDist = 60;
         const textX = cx + textDist * Math.cos(midAngle);
         const textY = cy + textDist * Math.sin(midAngle);
-
         const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
         text.setAttribute("x", textX);
         text.setAttribute("y", textY);
@@ -359,7 +367,6 @@
         text.setAttribute("dominant-baseline", "middle");
         text.style.textShadow = "0px 2px 4px rgba(0,0,0,0.8)";
         
-        // 標示邏輯
         if (isQuizMode) {
             if (vertexKey === 'C') {
                 text.textContent = "x";
@@ -381,7 +388,6 @@
             text.setAttribute("font-weight", "bold");
         }
         g.appendChild(text);
-        
         return g;
     }
 
@@ -389,11 +395,9 @@
         angleArcsGroup.innerHTML = '';
         proofArea.style.opacity = '0';
         const s = states[currentStep];
-
         const stepReachedA = currentStep >= 1;
         const stepReachedB = currentStep >= 3;
         const stepReachedC = currentStep >= 5;
-        
         const showA = isQuizMode || stepReachedA;
         const showB = isQuizMode || stepReachedB;
         const showC = isQuizMode || stepReachedC;
@@ -402,9 +406,7 @@
         if (showB) angleArcsGroup.appendChild(createArc('B', vertices.B.x, vertices.B.y, vertices.C, vertices.A));
         if (showC) angleArcsGroup.appendChild(createArc('C', vertices.C.x, vertices.C.y, vertices.A, vertices.B));
 
-        if (s.action === 'proof') {
-            showVisualProof();
-        }
+        if (s.action === 'proof') { showVisualProof(); }
     }
 
     function goToStep(index) {
@@ -416,6 +418,20 @@
         walker.style.transition = 'transform 1.0s linear';
         walker.setAttribute('transform', `translate(${targetPos.x}, ${targetPos.y})`);
         
+        // ★★★ 動畫切換邏輯 ★★★
+        // 1. 清除之前的計時器（如果有的話）
+        if (walkTimeout) clearTimeout(walkTimeout);
+        
+        // 2. 切換到「走動」狀態
+        walkerImg.classList.remove('is-observing');
+        walkerImg.classList.add('is-walking');
+        
+        // 3. 設定計時器，1秒後（移動結束）切換回「觀察」狀態
+        walkTimeout = setTimeout(() => {
+            walkerImg.classList.remove('is-walking');
+            walkerImg.classList.add('is-observing');
+        }, 1000); // 這裡的 1000ms 對應 CSS transition 的時間
+
         renderCurrentStepVisuals();
         updatePanel();
         
@@ -451,7 +467,6 @@
         const y1 = cy + r * Math.sin(rad1);
         const x2 = cx + r * Math.cos(rad2);
         const y2 = cy + r * Math.sin(rad2);
-        
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
         path.setAttribute("d", `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2} Z`);
         path.setAttribute("fill", color);
@@ -467,14 +482,12 @@
              const midRad = (rad1 + rad2) / 2;
              text.setAttribute("x", cx + (r+25) * Math.cos(midRad));
              text.setAttribute("y", cy + (r+25) * Math.sin(midRad));
-             
              text.textContent = "x";
              text.setAttribute("fill", color);
              text.setAttribute("font-size", "20");
              text.setAttribute("font-family", "'Times New Roman', serif");
              text.setAttribute("font-style", "italic");
              text.setAttribute("font-weight", "bold");
-             
              text.setAttribute("text-anchor", "middle");
              text.style.opacity = "0";
              text.style.transition = "opacity 0.5s 0.5s";
@@ -483,8 +496,6 @@
         }
         setTimeout(() => path.style.transform = "scale(1)", 100);
     }
-
-    // --- 觸控邏輯 ---
 
     function getEventPoint(e) {
         if (e.touches && e.touches.length > 0) {
@@ -506,40 +517,27 @@
     function handleMove(e) {
       if (!isDragging) return;
       e.preventDefault(); 
-
       const point = getEventPoint(e);
       const pt = svg.createSVGPoint();
       pt.x = point.x;
       pt.y = point.y;
-      
       const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
-      
       const x = Math.max(20, Math.min(480, svgP.x));
       const y = Math.max(20, Math.min(430, svgP.y));
-      
       vertices[draggedVertex] = { x, y };
-      
-      if (currentStep === 7) {
-          closeDiscovery();
-          goToStep(0);
-      }
+      if (currentStep === 7) { closeDiscovery(); goToStep(0); }
       render();
     }
 
-    function handleEnd(e) {
-      isDragging = false; 
-      draggedVertex = null; 
-    }
+    function handleEnd(e) { isDragging = false; draggedVertex = null; }
 
     svg.addEventListener('mousedown', handleStart);
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleEnd);
-
     svg.addEventListener('touchstart', handleStart, { passive: false });
     window.addEventListener('touchmove', handleMove, { passive: false });
     window.addEventListener('touchend', handleEnd);
 
-    // --- 其他事件 ---
     document.getElementById('next-btn').addEventListener('click', () => { if (currentStep < states.length - 1) goToStep(currentStep + 1); });
     document.getElementById('prev-btn').addEventListener('click', () => { if (currentStep > 0) goToStep(currentStep - 1); });
     document.getElementById('reset-btn').addEventListener('click', () => {
